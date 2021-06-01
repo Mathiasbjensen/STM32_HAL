@@ -50,8 +50,11 @@ osThreadId defaultTaskHandle;
 uint8_t randSeq[2];
 uint8_t stry[2];
 
+uint8_t testSara[3];
+
 uint8_t SARAresult[128];
 uint8_t SARAtech[30];
+uint8_t testing[] = ".";
 uint8_t SARApause[] = "ATE0\r\n"; //\r\n send in sara sender function
 uint8_t SARAumnoprof[] = "AT+UMNOPROF=100\r\n";
 uint8_t SARAcops[] = "AT+COPS=0,2\r\n";
@@ -60,6 +63,7 @@ uint8_t SARAconnNB[] = "AT+URAT=8\r\n";
 uint8_t SARAcopsCheck[] = "AT+COPS?\r\n";
 uint8_t SARAcsq[] = "AT+CSQ\r\n";
 uint8_t SARAcesq[] = "AT+CESQ\r\n";
+uint8_t SARATechnology[1];
 
 uint8_t syncLora[] = "AT+MAC=?\r\n";
 uint8_t beginLora[] = "AT+MAC=ON\r\n";
@@ -122,7 +126,7 @@ void nemeus_Power_Cycle() {
     osDelay(1500);
     HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_SET);
 	//osDelay(150);
-/*
+
 	HAL_UART_Transmit(&huart3, syncLora, strlen(syncLora), 10);
 	HAL_UART_Receive(&huart3, trash, 128, 100);
 	osDelay(50);
@@ -135,54 +139,77 @@ void nemeus_Power_Cycle() {
 	HAL_UART_Receive(&huart3, trash, 128, 100);
 	osDelay(50);
 	HAL_UART_Receive(&huart3, trash, 128, 100);
-	*/
+
 
 }
-/*
+
 void SARA_Get_Measurement(uint8_t * cmd){
 	HAL_UART_Transmit(&huart1, cmd, strlen(cmd), 10);
 	HAL_UART_Receive(&huart1, SARAresult, 128, 100);
 }
 
-void SARA_ChangeTech(int tech){ //tech should be 9 for NB
+void SARA_ChangeTech(uint8_t tech){ //tech should be 9 for NB
 
-	if(tech == 7){ //LTE-M
+	if(tech == '7'){ //LTE-M
 		HAL_UART_Transmit(&huart1, SARAconnLTE, strlen(SARAconnLTE), 10);
 	} else { //8 = NB IOT
 		HAL_UART_Transmit(&huart1, SARAconnNB, strlen(SARAconnNB), 10);
 	}
 	HAL_UART_Receive(&huart1, trash, 128, 100);
 
-	int curTech; //if -1 then dont do following
+	uint8_t curTech; //if -1 then dont do following
 	int i = 0;
 	do {
 		SARA_CheckTech();
-		curTech = getResultParameterURAT(4, SARAtech);
-		osDelay(250);
+		getResultParameterURAT(3, SARAtech);
+		//SARA_Get_Current_URAT(SARAtech);
+		osDelay(1500);
 		i++;
-	} while (curTech != tech && i < 15);
+		//sendToESP(SARATechnology);
+	} while (SARATechnology[0] != tech && i < 15);
 
 }
 
 void SARA_CheckTech(){
 	HAL_UART_Transmit(&huart1, SARAcopsCheck, strlen(SARAcopsCheck), 10);
-	HAL_UART_Receive(&huart1, SARAtech, 30, 250);
+	HAL_UART_Receive(&huart1, SARAtech, 30, 750);
 	sendToESP(SARAtech);
 }
 
-int getResultParameterURAT(int nParam, uint8_t * msg){
-	int commaCnt = 0;
-	int result = -1;
-	for(int i = 0; i <= strlen(msg); i++){
-		if(msg[i] == ',' && commaCnt == nParam-1){
-			result = atoi(msg[i+1]);
-		} else if(msg[i] == ','){
-			commaCnt++;
-		}
+/*
+void SARA_Get_Current_URAT(uint8_t * msg){
+	if (SARATechnology[0] == '9'){
+		SARATechnology[0] = msg[24];
 	}
-	return result;
+	else {
+		SARATechnology[0] = msg[];
+	}
+
 }
 */
+
+
+void getResultParameterURAT(int nParam, uint8_t * msg){
+	int commaCnt = 0;
+	//uint8_t result;
+	//for(int i = 0; i <= strlen(msg); i++){
+	int i = 0;
+	while (msg[i] != '\0'){
+		if(msg[i] == ',' && commaCnt == nParam-1){
+			SARATechnology[0] = msg[i+1];
+			return;
+		} else if(msg[i] == ','){
+			commaCnt++;
+			sendToESP(testing);
+		}
+		i++;
+		osDelay(400);
+	}
+
+}
+
+
+
 /* USER CODE END 0 */
 
 /**
@@ -445,9 +472,6 @@ void sendToESP(uint8_t * msg) {
 	HAL_UART_Transmit(&huart2, beginDelim, 1, 50);
 	HAL_UART_Transmit(&huart2, msg, strlen(msg), 50);
 	HAL_UART_Transmit(&huart2, endDelim, 1, 50);
-	HAL_UART_Transmit(&huart1, beginDelim, 1, 50);
-	HAL_UART_Transmit(&huart1, msg, strlen(msg), 50);
-	HAL_UART_Transmit(&huart1, endDelim, 1, 50);
 }
 
 /* USER CODE END 4 */
@@ -466,7 +490,7 @@ void StartDefaultTask(void const * argument)
   uint8_t test[] = "AT+COPS?\r\n";
   sendToESP(test);
   osDelay(4500);
-  //SARA_Init();
+  SARA_Init();
   nemeus_Power_Cycle();
 
   uint8_t testRN[] = "AT+MAC=SNDLCR\r\n";
@@ -489,18 +513,18 @@ void StartDefaultTask(void const * argument)
     //sendToESP(test);
     HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
 // **** SARA STUFF ****
-    /*
+
     HAL_UART_Transmit(&huart1, SARAcesq, strlen(SARAcesq), 50);
     HAL_UART_Receive(&huart1, saraMSG, 69, 50);
 	sendToESP(saraMSG);
-	SARA_ChangeTech(9);
+	SARA_ChangeTech('9');
 
 	osDelay(1000);
 	HAL_UART_Transmit(&huart1, SARAcesq, strlen(SARAcesq), 50);
 	HAL_UART_Receive(&huart1, saraMSG, 69, 50);
 	sendToESP(saraMSG);
-	SARA_ChangeTech(7);
-*/
+	SARA_ChangeTech('7');
+
 
 
     /*
@@ -528,13 +552,13 @@ void StartDefaultTask(void const * argument)
 
     osDelay(1000);
     nemeus_Power_Cycle();
-/*
+
 	osDelay(50);
     memset(saraMSG, '\0', 69);
 	memset(SigFoxMessage, '\0', 69);
 	memset(LoRaMessage, '\0', 69);
 	sigFoxSeq++;
-*/
+
 
   }
   /* USER CODE END 5 */
