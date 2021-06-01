@@ -64,6 +64,7 @@ uint8_t SARAcopsCheck[] = "AT+COPS?\r\n";
 uint8_t SARAcsq[] = "AT+CSQ\r\n";
 uint8_t SARAcesq[] = "AT+CESQ\r\n";
 uint8_t SARATechnology[1];
+uint8_t SARARsrpRsrq[6];
 
 uint8_t syncLora[] = "AT+MAC=?\r\n";
 uint8_t beginLora[] = "AT+MAC=ON\r\n";
@@ -167,7 +168,6 @@ void SARA_ChangeTech(uint8_t tech){ //tech should be 9 for NB
 		i++;
 		//sendToESP(SARATechnology);
 	} while (SARATechnology[0] != tech && i < 15);
-
 }
 
 void SARA_CheckTech(){
@@ -200,12 +200,34 @@ void getResultParameterURAT(int nParam, uint8_t * msg){
 			return;
 		} else if(msg[i] == ','){
 			commaCnt++;
-			sendToESP(testing);
+			//sendToESP(testing);
 		}
 		i++;
-		osDelay(400);
+		//osDelay(400);
 	}
+}
 
+
+void getResultParameterCESQ(int nParam, uint8_t * msg){
+	int commaCnt = 0;
+	//uint8_t result;
+	//for(int i = 0; i <= strlen(msg); i++){
+	int i = 0;
+	int j = 1;
+	while (msg[i] != '\0'){
+		if(msg[i] == ',' && commaCnt == nParam-1){
+			while (j <= 5 && msg[i+j] != '\r' && msg[i+j] != '\n'){
+				SARARsrpRsrq[j-1] = msg[i+j];
+				j++;
+			}
+			return;
+		} else if(msg[i] == ','){
+			commaCnt++;
+			//sendToESP(testing);
+		}
+		i++;
+		//osDelay(400);
+	}
 }
 
 
@@ -516,13 +538,15 @@ void StartDefaultTask(void const * argument)
 
     HAL_UART_Transmit(&huart1, SARAcesq, strlen(SARAcesq), 50);
     HAL_UART_Receive(&huart1, saraMSG, 69, 50);
-	sendToESP(saraMSG);
+    getResultParameterCESQ(4, saraMSG);
+	sendToESP(SARARsrpRsrq);
 	SARA_ChangeTech('9');
 
 	osDelay(1000);
 	HAL_UART_Transmit(&huart1, SARAcesq, strlen(SARAcesq), 50);
 	HAL_UART_Receive(&huart1, saraMSG, 69, 50);
-	sendToESP(saraMSG);
+	getResultParameterCESQ(4, saraMSG);
+	sendToESP(SARARsrpRsrq);
 	SARA_ChangeTech('7');
 
 
