@@ -83,7 +83,7 @@ uint8_t loraMeasurements[128];
 uint8_t sigfoxMeasurements[128];
 
 int sigFoxSeq = 0;
-uint8_t myInt[4] = "0000";
+uint8_t myInt[5];
 
 uint8_t beginDelim[] = "<";
 uint8_t endDelim[] = ">";
@@ -136,7 +136,8 @@ void SARA_Init() {
 }
 
 void nemeus_Power_Cycle() {
-
+	uint8_t test5[] = "power cycle started";
+	sendToESP(test5);
 	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_RESET);
     osDelay(1500);
     HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_SET);
@@ -269,10 +270,16 @@ void NEMEUS_Prepare_Lora_Measurements(){
 }
 
 void NEMEUS_Prepare_Sigfox_Measurements(){
+	uint8_t sigfoxResultsTest[] = "Preparing Sigfox Measurements";
+	sendToESP(sigfoxResultsTest);
 	strcpy(sigfoxMeasurements,sigfoxTechName);
 	//strcat(sigfoxMeasurements,currentGPSCoords);
 	strcat(sigfoxMeasurements,randSeq);
 	strcat(sigfoxMeasurements,myInt);
+}
+
+void convertAndUpdateSeqNumber(){
+
 }
 
 
@@ -557,6 +564,8 @@ void StartDefaultTask(void const * argument)
   uint8_t test[] = "AT+COPS?\r\n";
   uint8_t test2[] = "AT+MAC=ON\r\n";
   uint8_t debugTest[] = "AT+DEBUG=ME?";
+  uint8_t test3[] = "test3";
+  uint8_t test4[] = "test4";
   sendToESP(test);
   osDelay(4500);
   SARA_Init();
@@ -567,11 +576,13 @@ void StartDefaultTask(void const * argument)
   uint8_t sigfoxEnd[] = ",0\r\n";
   //int sigFoxSeq = 0;
   //uint8_t myInt[4];// = "0000"
-
+/*
   strcpy(sigfoxSend,sigfoxSendBinCommand);
   strcat(sigfoxSend, randSeq);
   strcat(sigfoxSend, myInt);
   strcat(sigfoxSend, sigfoxEnd);
+
+*/
 
   uint8_t LoRaMessage[69];
   uint8_t SigFoxMessage[69];
@@ -608,6 +619,7 @@ void StartDefaultTask(void const * argument)
 // **** NEMEUS STUFF ****
 
 
+
     HAL_UART_Transmit(&huart3, getLoraLCR, strlen(getLoraLCR), 50);
     HAL_UART_Receive(&huart3, LoRaMessage, 69, 5000);
     NEMEUS_Extract_Lora_Measurements(LoRaMessage);
@@ -624,17 +636,27 @@ void StartDefaultTask(void const * argument)
 
 
 	//sendToESP(currentGPSCoords);
-/*
-	sprintf(myInt, "%04d", sigFoxSeq);
+    //memset(myInt,'\0',4);
+    sendToESP(test3);
+	//sprintf(myInt, "%04d", sigFoxSeq);
+    itoa(sigFoxSeq,myInt,10);
 
+
+    strcpy(sigfoxSend,sigfoxSendBinCommand);
+    strcat(sigfoxSend, randSeq);
+    strcat(sigfoxSend, myInt);
+    strcat(sigfoxSend, sigfoxEnd);
+/*
 	for(int i = 0; i < 4; i++) {
 		sigfoxSend[15+i] = myInt[i];
 	}
 */
+    sendToESP(test4);
+
 
 	//sendToESP(sigfoxSend);
 
-	HAL_UART_Transmit(&huart3, sigfoxSend, strlen(sigfoxSend), 50);
+	HAL_UART_Transmit(&huart3, sigfoxSend, 30, 50);
     HAL_UART_Receive(&huart3, SigFoxMessage, 69, 1500);
 
 	//sendToESP(SigFoxMessage);
@@ -652,7 +674,7 @@ void StartDefaultTask(void const * argument)
     nemeus_Power_Cycle();
 
 	osDelay(50);
-    memset(saraMSG, '\0', 69);
+    memset(saraMSG,'\0', 69);
 	memset(SigFoxMessage, '\0', 69);
 	memset(LoRaMessage, '\0', 69);
 	memset(currentGPSCoords,'\0',80);
