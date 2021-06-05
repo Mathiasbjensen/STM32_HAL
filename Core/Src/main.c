@@ -254,12 +254,13 @@ void NEMEUS_Extract_Lora_Measurements(uint8_t * cmd){
 	int i = 8; // start after '+MAC: ' also contains 2 more of some ascii stuff???
 	int j = 0;
 	//while(i < strlen(cmd) && cmd[i] != '\n' && cmd[i] != '\0'){
-	while(i < 69 && cmd[i] != '\n' && cmd[i] != '\0'){
+	while(i < 69 && cmd[i] != '\n' && cmd[i] != '\0' && cmd[i] != '\r'){
 		currentLoraSignalQuality[j] = cmd[i];
 		i++;
 		j++;
 	}
-	currentLoraSignalQuality[j] = '\0';
+	//sendToESP()
+	//currentLoraSignalQuality[j] = '\0';
 }
 
 void NEMEUS_Prepare_Lora_Measurements(){
@@ -636,18 +637,22 @@ void StartDefaultTask(void const * argument)
     HAL_UART_Transmit(&huart3, getLoraLCR, strlen(getLoraLCR), 50);
     HAL_UART_Receive(&huart3, LoRaMessage, 69, 10000);
     NEMEUS_Extract_Lora_Measurements(LoRaMessage);
-    sendToESP(currentLoraSignalQuality);
+    //sendToESP(currentLoraSignalQuality);
     // Get Coords:
     HAL_UART_Transmit(&huart1, getGPSCoords, strlen(getGPSCoords), 50);
     HAL_UART_Receive(&huart1, currentGPSCoords, 80, 500);
 
-
-    //NEMEUS_Prepare_Lora_Measurements();
-
-    //sendToESP(loraMeasurements);
+    //sendToESP(currentGPSCoords);
+    osDelay(500);
 
 
-	sendToESP(currentGPSCoords);
+    NEMEUS_Prepare_Lora_Measurements();
+
+    sendToESP(loraMeasurements);
+    //memset(currentGPSCoords,'\0',80);
+
+
+	//sendToESP(currentGPSCoords);
 
 	//HAL_UART_Transmit(&huart2, currentLoraSignalQuality, strlen(msg), 50);
 
