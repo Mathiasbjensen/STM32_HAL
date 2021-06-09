@@ -70,8 +70,8 @@ uint8_t SARAcsqResult[4];
 uint8_t SaraMeasurements[128];
 uint8_t saraCESQmessage[70];
 uint8_t saraCSQmessage[50];
-uint8_t LTEMTechName[] = "LTE-M,";
-uint8_t NBIoTTechName[] = "NB-IoT,";
+uint8_t LTEMTechName[] = "lte-m,";
+uint8_t NBIoTTechName[] = "nb-iot,";
 
 
 uint8_t syncLora[] = "AT+MAC=?\r\n";
@@ -80,9 +80,9 @@ uint8_t beginLora[] = "AT+MAC=ON,3,A,1\r\n";
 uint8_t getLoraLCR[] = "AT+MAC=SNDLCR\r\n";
 uint8_t beginSigfox[] = "AT+SF=ON\r\n";
 uint8_t sigfoxSendBinCommand[] = "AT+SF=SNDBIN,";
-uint8_t getGPSCoords[] = "<G>\r\n";
-uint8_t loraTechName[] = "LoRa,";
-uint8_t sigfoxTechName[] = "Sigfox,";
+uint8_t getGPSCoordsCommand[] = "<G>\r\n";
+uint8_t loraTechName[] = "lora,";
+uint8_t sigfoxTechName[] = "sigfox,";
 uint8_t currentGPSCoords[80];
 uint8_t currentLoraSignalQuality[69];
 uint8_t trash[128];
@@ -137,6 +137,10 @@ void SARA_Init() {
 	osDelay(500);
 	HAL_UART_Transmit(&huart1, SARAconnLTE, strlen(SARAconnLTE), 50);
 	HAL_UART_Receive(&huart1, trash, 128, 100);
+
+	HAL_UART_Transmit(&huart1, SARApause, strlen(SARApause), 50);
+	HAL_UART_Receive(&huart1, trash, 128, 100);
+
 	osDelay(500);
 	HAL_UART_Receive(&huart1, trash, 128, 100);
 
@@ -191,7 +195,7 @@ void SARA_ChangeTech(uint8_t tech){ //tech should be 9 for NB
 		SARA_CheckTech();
 		getResultParameterURAT(3, SARAtech);
 		//SARA_Get_Current_URAT(SARAtech);
-		osDelay(1500);
+		osDelay(2500);
 		i++;
 		//sendToESP(SARATechnology);
 	} while (SARATechnology[0] != tech && i < 15);
@@ -269,12 +273,15 @@ void getCSQResult(uint8_t * msg){
 	}
 }
 
-void getGPSCoordinate(){
-    HAL_UART_Transmit(&huart1, getGPSCoords, strlen(getGPSCoords), 50);
+void getGPSCoordinates(){
+	memset(currentGPSCoords,'\0',80);
+    HAL_UART_Transmit(&huart1, getGPSCoordsCommand, strlen(getGPSCoordsCommand), 50);
     HAL_UART_Receive(&huart1, currentGPSCoords, 80, 500);
 
     if (strlen(currentGPSCoords) == 0){
-        HAL_UART_Transmit(&huart1, getGPSCoords, strlen(getGPSCoords), 50);
+    	sendToESP(testing);
+    	osDelay(400);
+        HAL_UART_Transmit(&huart1, getGPSCoordsCommand, strlen(getGPSCoordsCommand), 50);
         HAL_UART_Receive(&huart1, currentGPSCoords, 80, 500);
     }
 }
@@ -675,9 +682,11 @@ void StartDefaultTask(void const * argument)
     getCSQResult(saraCSQmessage);
     //sendToESP(SARAcsqResult);
     osDelay(1000);
+    /*
     HAL_UART_Transmit(&huart1, getGPSCoords, strlen(getGPSCoords), 50);
     HAL_UART_Receive(&huart1, currentGPSCoords, 80, 500);
-
+	*/
+    getGPSCoordinates();
     prepareSaraMeasurement(7);
     sendToESP(SaraMeasurements);
 
@@ -696,9 +705,11 @@ void StartDefaultTask(void const * argument)
 
     getCSQResult(saraCSQmessage);
     osDelay(500);
+    /*
     HAL_UART_Transmit(&huart1, getGPSCoords, strlen(getGPSCoords), 50);
     HAL_UART_Receive(&huart1, currentGPSCoords, 80, 500);
-
+	*/
+    getGPSCoordinates();
     prepareSaraMeasurement(9);
     sendToESP(SaraMeasurements);
 
@@ -721,9 +732,11 @@ void StartDefaultTask(void const * argument)
     NEMEUS_Extract_Lora_Measurements(LoRaMessage);
     //sendToESP(currentLoraSignalQuality);
     // Get Coords:
+    /*
     HAL_UART_Transmit(&huart1, getGPSCoords, strlen(getGPSCoords), 50);
     HAL_UART_Receive(&huart1, currentGPSCoords, 80, 500);
-
+	*/
+    getGPSCoordinates();
     //sendToESP(currentGPSCoords);
     osDelay(500);
 
