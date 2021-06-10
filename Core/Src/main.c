@@ -20,8 +20,6 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "cmsis_os.h"
-#include "time.h"
-#include "string.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -228,6 +226,7 @@ void getResultParameterURAT(int nParam, uint8_t * msg, int msgLength){
 	memset(SARATechnology,'\0',1);
 	int commaCnt = 0;
 	int i = 0;
+	//sendToESP(msg);
 	while (msg[i] != '\0' && i < msgLength){
 		osDelay(50);
 		if(msg[i] == ',' && commaCnt == nParam-1){
@@ -237,16 +236,16 @@ void getResultParameterURAT(int nParam, uint8_t * msg, int msgLength){
 		} else if(msg[i] == ','){
 			commaCnt++;
 		}
-		i++;
-	}
+		i++;	}
 }
 
 
 void getResultParameterCESQ(int nParam, uint8_t * msg){
 	int commaCnt = 0;
+	//uint8_t result;
+	//for(int i = 0; i <= strlen(msg); i++){
 	int i = 0;
 	int j = 1;
-
 	while (msg[i] != '\0'){
 		if(msg[i] == ',' && commaCnt == nParam-1){
 			while (j <= 5 && msg[i+j] != '\r' && msg[i+j] != '\n'){
@@ -280,7 +279,7 @@ void getGPSCoordinates(){
     if (strlen(currentGPSCoords) < 5){ //arbitrary number, should be tweaked.
     	sendToESP(testing);
     	memset(currentGPSCoords,'\0',80);
-    	osDelay(400);
+    	osDelay(500);
     	HAL_UART_Receive(&huart1, trash, 128, 200);
         HAL_UART_Transmit(&huart1, getGPSCoordsCommand, strlen(getGPSCoordsCommand), 10);
         HAL_UART_Receive(&huart1, currentGPSCoords, 80, 1500);
@@ -629,36 +628,44 @@ void StartDefaultTask(void const * argument)
 
   uint8_t debugTest[] = "AT+DEBUG=ME?";
   sendToESP(debugTest);
-
   osDelay(4500);
   SARA_Init();
   nemeus_Power_Cycle();
 
+  //uint8_t sigfoxSend[23] = "AT+SF=SNDBIN,";
   uint8_t sigfoxSend[30];
+  //int sigFoxSeq = 0;
+  //uint8_t myInt[4];// = "0000"
   uint8_t LoRaMessage[69];
   uint8_t SigFoxMessage[69];
+  //uint8_t saraMSG[69];
 
   for(;;)
   {
     osDelay(1000);
+    //sendToESP(test);
     HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
 
     // **** SARA STUFF ****
     // ********************
 
     SARA_ChangeTech('7');
-    osDelay(150);
 
+    collectAndTransmitSARAMeasurement();
     getGPSCoordinates();
     prepareSaraMeasurement(SARA_LTEM);
     sendToESP(SaraMeasurements);
 
+    memset(SaraMeasurements, '\0', 128);
+
 	SARA_ChangeTech('9');
 
+    collectAndTransmitSARAMeasurement();
     getGPSCoordinates();
     prepareSaraMeasurement(SARA_NBIOT);
     sendToESP(SaraMeasurements);
 
+    memset(SaraMeasurements, '\0', 128);
 
     // **** NEMEUS STUFF ****
     // **********************
@@ -668,7 +675,6 @@ void StartDefaultTask(void const * argument)
     NEMEUS_Extract_Lora_Measurements(LoRaMessage);
 
     getGPSCoordinates();
-    osDelay(500);
 
     NEMEUS_Prepare_Lora_Measurements();
 
@@ -676,7 +682,7 @@ void StartDefaultTask(void const * argument)
 
     HAL_UART_Transmit(&huart2, crlf, strlen(crlf), 50);
 
-	osDelay(50);
+    //memset(saraMSG,'\0', 69);
 	memset(SigFoxMessage, '\0', 69);
 	memset(LoRaMessage, '\0', 69);
 	memset(currentGPSCoords,'\0',80);
