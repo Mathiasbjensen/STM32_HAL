@@ -33,6 +33,8 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+#define SARA_LTEM 7
+#define SARA_NBIOT 8
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -187,7 +189,6 @@ void SARA_Get_Measurement(uint8_t * cmd){
 }
 
 
-
 void SARA_ChangeTech(uint8_t tech){ //tech should be 9 for NB
 	uint8_t lpwanTechnology[12];
 	if(tech == '7'){
@@ -225,13 +226,14 @@ void SARA_ChangeTech(uint8_t tech){ //tech should be 9 for NB
 		//HAL_UART_Transmit(&huart1, lpwanTechnology, strlen(lpwanTechnology), 50);
 		//HAL_UART_Receive(&huart1, trash, 128, 500);
 		//sendToESP(SARATechnology);
-	} while (SARATechnology[0] != tech && i < 15);
+	} while (SARATechnology[0] != tech && i < 5);
+
 }
 
 void SARA_CheckTech(){
 	memset(SARAtech,'\0',50);
 	HAL_UART_Transmit(&huart1, SARAcopsCheck, strlen(SARAcopsCheck), 10);
-	HAL_UART_Receive(&huart1, SARAtech, 50, 500);
+	HAL_UART_Receive(&huart1, SARAtech, 50, 1500);
 	sendToESP(SARAtech);
 }
 
@@ -308,10 +310,10 @@ void getGPSCoordinates(){
 
 void prepareSaraMeasurement(int technology){
 	memset(SaraMeasurements,'\0',128);
-	if (technology == 7){
+	if (technology == SARA_LTEM){
 		strcpy(SaraMeasurements,LTEMTechName);
 	}
-	if (technology == 9){
+	if (technology == SARA_NBIOT){
 		strcpy(SaraMeasurements,NBIoTTechName);
 	}
 
@@ -642,9 +644,58 @@ void sendToESP(uint8_t * msg) {
 	HAL_UART_Transmit(&huart2, endDelim, 1, 50);
 }
 
-void collectAndTransmitSARAMeasurement(){
+/*
+int verifySaraTechnology(int expectedSaraTechnology){
+	uint8_t expectedSaraTechnology_uint;
+	if (expectedSaraTechnology == SARA_LTEM){
+		expectedSaraTechnology_uint = '7';
+	}
+	else if (expectedSaraTechnology == SARA_NBIOT) {
+		expectedSaraTechnology_uint = '9';
+	}
+
+	SARA_CheckTech();
+	int msgLength = strlen(SARAtech);
+	getResultParameterURAT(3, SARAtech, msgLength);
+	if (SARATechnology[0] == expectedSaraTechnology_uint){
+		return 1;
+	}
+	return 0;
+}
+*/
+
+
+void collectAndTransmitSARAMeasurement(int sara_technology){
+
+	//if (verifySaraTechnology(sara_technology) == 0){
+	//	sendToESP("ERROR: unexpected URAT value");
+	//}
+
+    if (sara_technology == SARA_LTEM){
+    	SARA_ChangeTech('9');
+    }
+    else if (sara_technology == SARA_NBIOT){
+    	SARA_ChangeTech('7');
+    }
+
+    HAL_UART_Transmit(&huart1, SARAcesq, strlen(SARAcesq), 50);
+    HAL_UART_Receive(&huart1, saraCESQmessage, 70, 150);
+    getResultParameterCESQ(4, saraCESQmessage);
+
+    HAL_UART_Transmit(&huart1, SARAcsq, strlen(SARAcsq), 50);
+    HAL_UART_Receive(&huart1, saraCSQmessage, 50, 150);
+
+    getCSQResult(saraCSQmessage);
+
+    osDelay(500);
+
+    getGPSCoordinates();
+    prepareSaraMeasurement(sara_technology);
+    sendToESP(SaraMeasurements);
+
 
 }
+
 
 /* USER CODE END 4 */
 
@@ -675,7 +726,7 @@ void StartDefaultTask(void const * argument)
   //uint8_t myInt[4];// = "0000"
   uint8_t LoRaMessage[69];
   uint8_t SigFoxMessage[69];
-  uint8_t saraMSG[69];
+  //uint8_t saraMSG[69];
 
   for(;;)
   {
@@ -683,6 +734,10 @@ void StartDefaultTask(void const * argument)
     //sendToESP(test);
     HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
 // **** SARA STUFF ****
+
+
+    SARA_ChangeTech('7');
+    osDelay(150);
 
     HAL_UART_Transmit(&huart1, SARAcesq, strlen(SARAcesq), 50);
     HAL_UART_Receive(&huart1, saraCESQmessage, 70, 150);
@@ -698,17 +753,23 @@ void StartDefaultTask(void const * argument)
     getCSQResult(saraCSQmessage);
     //sendToESP(SARAcsqResult);
     osDelay(1000);
-    /*
-    HAL_UART_Transmit(&huart1, getGPSCoords, strlen(getGPSCoords), 50);
-    HAL_UART_Receive(&huart1, currentGPSCoords, 80, 500);
-	*/
+
     getGPSCoordinates();
-    prepareSaraMeasurement(7);
+    prepareSaraMeasurement(SARA_LTEM);
     sendToESP(SaraMeasurements);
 
     //sendToESP(SARARsrpRsrq);
 
 	SARA_ChangeTech('9');
+
+
+    collectAndTransmitSARAMeasurement(SARA_LTEM);
+    osDelay(1000);
+
+    collectAndTransmitSARAMeasurement(SARA_NBIOT);
+    osDelay(500);
+
+
 
 	osDelay(1000);
 	HAL_UART_Transmit(&huart1, SARAcesq, strlen(SARAcesq), 50);
@@ -721,15 +782,12 @@ void StartDefaultTask(void const * argument)
 
     getCSQResult(saraCSQmessage);
     osDelay(500);
-    /*
-    HAL_UART_Transmit(&huart1, getGPSCoords, strlen(getGPSCoords), 50);
-    HAL_UART_Receive(&huart1, currentGPSCoords, 80, 500);
-	*/
+
     getGPSCoordinates();
-    prepareSaraMeasurement(9);
+    prepareSaraMeasurement(SARA_NBIOT);
     sendToESP(SaraMeasurements);
 
-	SARA_ChangeTech('7');
+	//SARA_ChangeTech('7');
 
 
 
@@ -806,7 +864,7 @@ void StartDefaultTask(void const * argument)
     //nemeus_Power_Cycle();
 
 	osDelay(50);
-    memset(saraMSG,'\0', 69);
+    //memset(saraMSG,'\0', 69);
 	memset(SigFoxMessage, '\0', 69);
 	memset(LoRaMessage, '\0', 69);
 	memset(currentGPSCoords,'\0',80);
