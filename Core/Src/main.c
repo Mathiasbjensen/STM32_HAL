@@ -123,14 +123,6 @@ void StartDefaultTask(void const * argument);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-/*
-void SARA_Send_Cmd(uint8_t* Command) {
-	uint8_t msg[60] = {0};
-	HAL_UART_Transmit(&huart1, Command, strlen(Command), 10);
-
-	HAL_UART_Receive(&huart1, msg, 60, 10)
-
-}*/
 
 
 void SARA_Init() {
@@ -219,13 +211,8 @@ void SARA_ChangeTech(uint8_t tech){ //tech should be 9 for NB
 		msgLength = strlen(SARAtech);
 		getResultParameterURAT(3, SARAtech, msgLength);
 		sendToESP(SARATechnology);
-		//HAL_UART_Receive(&huart1, trash, 128, 100);
-		//SARA_Get_Current_URAT(SARAtech);
 		osDelay(1500);
 		i++;
-		//HAL_UART_Transmit(&huart1, lpwanTechnology, strlen(lpwanTechnology), 50);
-		//HAL_UART_Receive(&huart1, trash, 128, 500);
-		//sendToESP(SARATechnology);
 	} while (SARATechnology[0] != tech && i < 5);
 
 }
@@ -240,10 +227,7 @@ void SARA_CheckTech(){
 void getResultParameterURAT(int nParam, uint8_t * msg, int msgLength){
 	memset(SARATechnology,'\0',1);
 	int commaCnt = 0;
-	//uint8_t result;
-	//for(int i = 0; i <= strlen(msg); i++){
 	int i = 0;
-	//sendToESP(msg);
 	while (msg[i] != '\0' && i < msgLength){
 		osDelay(50);
 		if(msg[i] == ',' && commaCnt == nParam-1){
@@ -252,20 +236,17 @@ void getResultParameterURAT(int nParam, uint8_t * msg, int msgLength){
 			return;
 		} else if(msg[i] == ','){
 			commaCnt++;
-			//sendToESP(testing);
 		}
 		i++;
-		//osDelay(400);
 	}
 }
 
 
 void getResultParameterCESQ(int nParam, uint8_t * msg){
 	int commaCnt = 0;
-	//uint8_t result;
-	//for(int i = 0; i <= strlen(msg); i++){
 	int i = 0;
 	int j = 1;
+
 	while (msg[i] != '\0'){
 		if(msg[i] == ',' && commaCnt == nParam-1){
 			while (j <= 5 && msg[i+j] != '\r' && msg[i+j] != '\n'){
@@ -275,10 +256,8 @@ void getResultParameterCESQ(int nParam, uint8_t * msg){
 			return;
 		} else if(msg[i] == ','){
 			commaCnt++;
-			//sendToESP(testing);
 		}
 		i++;
-		//osDelay(400);
 	}
 }
 
@@ -333,15 +312,12 @@ void prepareSaraMeasurement(int technology){
 void NEMEUS_Extract_Lora_Measurements(uint8_t * cmd){
 	int i = 8; // start after '+MAC: ' also contains 2 more of some ascii stuff???
 	int j = 0;
-	//while(i < strlen(cmd) && cmd[i] != '\n' && cmd[i] != '\0'){
+
 	while(i < 69 && cmd[i] != '\n' && cmd[i] != '\0' && cmd[i] != '\r'){
 		currentLoraSignalQuality[j] = cmd[i];
 		i++;
 		j++;
 	}
-	//sendToESP()
-	//currentLoraSignalQuality[j] = '\0';
-
 }
 
 void NEMEUS_Prepare_Lora_Measurements(){
@@ -349,22 +325,6 @@ void NEMEUS_Prepare_Lora_Measurements(){
 	strcpy(loraMeasurements,loraTechName);
 	strcat(loraMeasurements,currentGPSCoords);
 	strcat(loraMeasurements,currentLoraSignalQuality);
-	//strcat(loraMeasurements,crlf);
-
-	/*
-	osDelay(50);
-	HAL_UART_Transmit(&huart2, beginDelim, 1, 50);
-	osDelay(50);
-	HAL_UART_Transmit(&huart2, loraTechName, strlen(loraTechName), 150);
-	osDelay(50);
-	HAL_UART_Transmit(&huart2, currentGPSCoords, strlen(currentGPSCoords), 150);
-	osDelay(50);
-	HAL_UART_Transmit(&huart2, currentLoraSignalQuality, strlen(currentLoraSignalQuality), 150);
-	osDelay(50);
-	HAL_UART_Transmit(&huart2, endDelim, 1, 50);
-	osDelay(50);
-	*/
-
 
 	memset(currentGPSCoords,'\0',80);
 }
@@ -376,9 +336,6 @@ void NEMEUS_Prepare_Sigfox_Measurements(){
 	strcat(sigfoxMeasurements,myInt);
 	strcat(sigfoxMeasurements,crlf);
 }
-
-
-
 
 /* USER CODE END 0 */
 
@@ -644,39 +601,7 @@ void sendToESP(uint8_t * msg) {
 	HAL_UART_Transmit(&huart2, endDelim, 1, 50);
 }
 
-/*
-int verifySaraTechnology(int expectedSaraTechnology){
-	uint8_t expectedSaraTechnology_uint;
-	if (expectedSaraTechnology == SARA_LTEM){
-		expectedSaraTechnology_uint = '7';
-	}
-	else if (expectedSaraTechnology == SARA_NBIOT) {
-		expectedSaraTechnology_uint = '9';
-	}
-
-	SARA_CheckTech();
-	int msgLength = strlen(SARAtech);
-	getResultParameterURAT(3, SARAtech, msgLength);
-	if (SARATechnology[0] == expectedSaraTechnology_uint){
-		return 1;
-	}
-	return 0;
-}
-*/
-
-
-void collectAndTransmitSARAMeasurement(int sara_technology){
-
-	//if (verifySaraTechnology(sara_technology) == 0){
-	//	sendToESP("ERROR: unexpected URAT value");
-	//}
-
-    if (sara_technology == SARA_LTEM){
-    	SARA_ChangeTech('9');
-    }
-    else if (sara_technology == SARA_NBIOT){
-    	SARA_ChangeTech('7');
-    }
+void collectAndTransmitSARAMeasurement(){
 
     HAL_UART_Transmit(&huart1, SARAcesq, strlen(SARAcesq), 50);
     HAL_UART_Receive(&huart1, saraCESQmessage, 70, 150);
@@ -687,15 +612,7 @@ void collectAndTransmitSARAMeasurement(int sara_technology){
 
     getCSQResult(saraCSQmessage);
 
-    osDelay(500);
-
-    getGPSCoordinates();
-    prepareSaraMeasurement(sara_technology);
-    sendToESP(SaraMeasurements);
-
-
 }
-
 
 /* USER CODE END 4 */
 
@@ -733,135 +650,39 @@ void StartDefaultTask(void const * argument)
     osDelay(1000);
     //sendToESP(test);
     HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
-// **** SARA STUFF ****
 
+    // **** SARA STUFF ****
+    // ********************
 
     SARA_ChangeTech('7');
     osDelay(150);
-
-    HAL_UART_Transmit(&huart1, SARAcesq, strlen(SARAcesq), 50);
-    HAL_UART_Receive(&huart1, saraCESQmessage, 70, 150);
-    osDelay(200);
-    getResultParameterCESQ(4, saraCESQmessage);
-    //sendToESP(saraMSG);
-    //sendToESP(SARARsrpRsrq);
-
-    HAL_UART_Transmit(&huart1, SARAcsq, strlen(SARAcsq), 50);
-    HAL_UART_Receive(&huart1, saraCSQmessage, 50, 50);
-    //sendToESP(saraCSQmessage);
-
-    getCSQResult(saraCSQmessage);
-    //sendToESP(SARAcsqResult);
-    osDelay(1000);
 
     getGPSCoordinates();
     prepareSaraMeasurement(SARA_LTEM);
     sendToESP(SaraMeasurements);
 
-    //sendToESP(SARARsrpRsrq);
-
 	SARA_ChangeTech('9');
-
-
-    collectAndTransmitSARAMeasurement(SARA_LTEM);
-    osDelay(1000);
-
-    collectAndTransmitSARAMeasurement(SARA_NBIOT);
-    osDelay(500);
-
-
-
-	osDelay(1000);
-	HAL_UART_Transmit(&huart1, SARAcesq, strlen(SARAcesq), 50);
-	HAL_UART_Receive(&huart1, saraCESQmessage, 70, 150);
-	osDelay(200);
-	getResultParameterCESQ(4, saraCESQmessage);
-
-    HAL_UART_Transmit(&huart1, SARAcsq, strlen(SARAcsq), 50);
-    HAL_UART_Receive(&huart1, saraCSQmessage, 50, 50);
-
-    getCSQResult(saraCSQmessage);
-    osDelay(500);
 
     getGPSCoordinates();
     prepareSaraMeasurement(SARA_NBIOT);
     sendToESP(SaraMeasurements);
 
-	//SARA_ChangeTech('7');
 
-
-
-    /*
-     * HAL_UART_Transmit(&huart1, test, strlen(test), 50);
-    HAL_UART_Receive(&huart1, saraMSG, 69, 50);
-    sendToESP(saraMSG);
-    osDelay(200);*/
-
-
-// **** NEMEUS STUFF ****
-// **********************
+    // **** NEMEUS STUFF ****
+    // **********************
 
     HAL_UART_Transmit(&huart3, getLoraLCR, strlen(getLoraLCR), 50);
     HAL_UART_Receive(&huart3, LoRaMessage, 69, 10000);
     NEMEUS_Extract_Lora_Measurements(LoRaMessage);
-    //sendToESP(currentLoraSignalQuality);
-    // Get Coords:
-    /*
-    HAL_UART_Transmit(&huart1, getGPSCoords, strlen(getGPSCoords), 50);
-    HAL_UART_Receive(&huart1, currentGPSCoords, 80, 500);
-	*/
-    getGPSCoordinates();
-    //sendToESP(currentGPSCoords);
-    osDelay(500);
 
+    getGPSCoordinates();
+    osDelay(500);
 
     NEMEUS_Prepare_Lora_Measurements();
 
     sendToESP(loraMeasurements);
 
-
-	//sendToESP(currentGPSCoords);
-
-	//HAL_UART_Transmit(&huart2, currentLoraSignalQuality, strlen(msg), 50);
-
-    //memset(myInt,'\0',4);
-	//sprintf(myInt, "%04d", sigFoxSeq);
-
-    /*
-    itoa(sigFoxSeq,myInt,10);
-
-    strcpy(sigfoxSend,sigfoxSendBinCommand);
-    strcat(sigfoxSend, randSeq);
-    strcat(sigfoxSend, myInt);
-    strcat(sigfoxSend, sigfoxEnd);
-    */
-/*
-	for(int i = 0; i < 4; i++) {
-		sigfoxSend[15+i] = myInt[i];
-	}
-*/
-	//sendToESP(sigfoxSend);
-/*
-	HAL_UART_Transmit(&huart3, sigfoxSend, 30, 50);
-    HAL_UART_Receive(&huart3, SigFoxMessage, 69, 1500);
-
-	//sendToESP(SigFoxMessage);
-	NEMEUS_Prepare_Sigfox_Measurements();
-	sendToESP(sigfoxMeasurements);
-*/
-
-/*
-    HAL_UART_Transmit(&huart1, getGPSCoords, strlen(getGPSCoords), 50);
-    HAL_UART_Receive(&huart1, currentGPSCoords, 80, 500);
-    sendToESP(currentGPSCoords);
-*/
-
-	// BARE SÅ TTL OUTPUT ER LIDT PÆNERE!!!!
-	//HAL_UART_Transmit(&huart2, loopDone, strlen(loopDone), 50);
     HAL_UART_Transmit(&huart2, crlf, strlen(crlf), 50);
-
-    //osDelay(1000);
-    //nemeus_Power_Cycle();
 
 	osDelay(50);
     //memset(saraMSG,'\0', 69);
