@@ -53,7 +53,7 @@ uint8_t stry[2];
 uint8_t testSara[3];
 
 uint8_t SARAresult[128];
-uint8_t SARAtech[30];
+uint8_t SARAtech[50];
 uint8_t testing[] = ".";
 uint8_t SARAate0[] = "ATE0\r\n"; //\r\n send in sara sender function
 uint8_t SARAumnoprof[] = "AT+UMNOPROF=100\r\n";
@@ -63,7 +63,7 @@ uint8_t SARAconnNB[] = "AT+URAT=8\r\n";
 uint8_t SARAcopsCheck[] = "AT+COPS?\r\n";
 uint8_t SARAcsq[] = "AT+CSQ\r\n";
 uint8_t SARAcesq[] = "AT+CESQ\r\n";
-uint8_t SARAcfun15 = "AT+CFUN=15\r\n";
+uint8_t SARAcfun15[] = "AT+CFUN=15\r\n";
 const uint8_t crlf[] = "\r\n";
 uint8_t SARATechnology[1];
 uint8_t SARARsrpRsrq[6];
@@ -95,6 +95,13 @@ uint8_t myInt[5];
 
 uint8_t beginDelim[] = "<";
 uint8_t endDelim[] = ">";
+
+typedef enum {
+  LTEM,
+  NBIOT,
+  LORA,
+  SIGFOX
+} lpwan_technology ;
 
 HAL_StatusTypeDef  HAL_STATUS_UART1;
 HAL_StatusTypeDef  HAL_STATUS_UART3;
@@ -186,50 +193,59 @@ void SARA_ChangeTech(uint8_t tech){ //tech should be 9 for NB
 	if(tech == '7'){
 		strcpy(lpwanTechnology,SARAconnLTE);
 	}
-	else {
+	else if (tech == '9') {
 		strcpy(lpwanTechnology,SARAconnNB);
 	}
 	HAL_UART_Transmit(&huart1, lpwanTechnology, strlen(lpwanTechnology), 50);
+	HAL_UART_Receive(&huart1, trash, 128, 100);
 
-	/*
-	if(tech == '7'){ //LTE-M
-		HAL_UART_Transmit(&huart1, SARAconnLTE, strlen(SARAconnLTE), 10);
-	} else { //8 = NB IOT
-		HAL_UART_Transmit(&huart1, SARAconnNB, strlen(SARAconnNB), 10);
-	}
-	*/
+	HAL_UART_Transmit(&huart1, SARAcfun15, strlen(SARAcfun15), 50);
 	HAL_UART_Receive(&huart1, trash, 128, 100);
 
 	uint8_t curTech; //if -1 then dont do following
+
+	// Wait for device to restart and
+	osDelay(5000);
+	HAL_UART_Transmit(&huart1, SARAate0, strlen(SARAate0), 50);
+	HAL_UART_Receive(&huart1, trash, 128, 100);
+	if (tech == '9'){
+		osDelay(3000);
+	}
 	int i = 0;
+	int msgLength;
 	do {
 		SARA_CheckTech();
-		getResultParameterURAT(3, SARAtech);
+		msgLength = strlen(SARAtech);
+		getResultParameterURAT(3, SARAtech, msgLength);
 		sendToESP(SARATechnology);
-		HAL_UART_Receive(&huart1, trash, 128, 100);
+		//HAL_UART_Receive(&huart1, trash, 128, 100);
 		//SARA_Get_Current_URAT(SARAtech);
-		osDelay(2500);
+		osDelay(1500);
 		i++;
-		HAL_UART_Transmit(&huart1, lpwanTechnology, strlen(lpwanTechnology), 50);
-		HAL_UART_Receive(&huart1, trash, 128, 500);
+		//HAL_UART_Transmit(&huart1, lpwanTechnology, strlen(lpwanTechnology), 50);
+		//HAL_UART_Receive(&huart1, trash, 128, 500);
 		//sendToESP(SARATechnology);
 	} while (SARATechnology[0] != tech && i < 15);
 }
 
 void SARA_CheckTech(){
+	memset(SARAtech,'\0',50);
 	HAL_UART_Transmit(&huart1, SARAcopsCheck, strlen(SARAcopsCheck), 10);
-	HAL_UART_Receive(&huart1, SARAtech, 30, 750);
-	//sendToESP(SARAtech);
+	HAL_UART_Receive(&huart1, SARAtech, 50, 500);
+	sendToESP(SARAtech);
 }
 
-
-void getResultParameterURAT(int nParam, uint8_t * msg){
+void getResultParameterURAT(int nParam, uint8_t * msg, int msgLength){
+	memset(SARATechnology,'\0',1);
 	int commaCnt = 0;
 	//uint8_t result;
 	//for(int i = 0; i <= strlen(msg); i++){
 	int i = 0;
-	while (msg[i] != '\0'){
+	//sendToESP(msg);
+	while (msg[i] != '\0' && i < msgLength){
+		osDelay(50);
 		if(msg[i] == ',' && commaCnt == nParam-1){
+			memset(SARATechnology,'\0',1);
 			SARATechnology[0] = msg[i+1];
 			return;
 		} else if(msg[i] == ','){
@@ -239,7 +255,6 @@ void getResultParameterURAT(int nParam, uint8_t * msg){
 		i++;
 		//osDelay(400);
 	}
-
 }
 
 
@@ -279,7 +294,7 @@ void getGPSCoordinates(){
 	//memset(currentGPSCoords,'\0',80);
 	HAL_UART_Receive(&huart1, trash, 128, 200);
     HAL_UART_Transmit(&huart1, getGPSCoordsCommand, strlen(getGPSCoordsCommand), 10);
-    HAL_UART_Receive(&huart1, currentGPSCoords, 80, 500);
+    HAL_UART_Receive(&huart1, currentGPSCoords, 80, 1500);
 
     if (strlen(currentGPSCoords) < 5){ //arbitrary number, should be tweaked.
     	sendToESP(testing);
@@ -287,7 +302,7 @@ void getGPSCoordinates(){
     	osDelay(400);
     	HAL_UART_Receive(&huart1, trash, 128, 200);
         HAL_UART_Transmit(&huart1, getGPSCoordsCommand, strlen(getGPSCoordsCommand), 10);
-        HAL_UART_Receive(&huart1, currentGPSCoords, 80, 500);
+        HAL_UART_Receive(&huart1, currentGPSCoords, 80, 1500);
     }
 }
 
@@ -627,6 +642,10 @@ void sendToESP(uint8_t * msg) {
 	HAL_UART_Transmit(&huart2, endDelim, 1, 50);
 }
 
+void collectAndTransmitSARAMeasurement(){
+
+}
+
 /* USER CODE END 4 */
 
 /* USER CODE BEGIN Header_StartDefaultTask */
@@ -654,14 +673,6 @@ void StartDefaultTask(void const * argument)
   uint8_t sigfoxEnd[] = ",0\r\n";
   //int sigFoxSeq = 0;
   //uint8_t myInt[4];// = "0000"
-/*
-  strcpy(sigfoxSend,sigfoxSendBinCommand);
-  strcat(sigfoxSend, randSeq);
-  strcat(sigfoxSend, myInt);
-  strcat(sigfoxSend, sigfoxEnd);
-
-*/
-
   uint8_t LoRaMessage[69];
   uint8_t SigFoxMessage[69];
   uint8_t saraMSG[69];
