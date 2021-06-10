@@ -20,6 +20,8 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "cmsis_os.h"
+#include "time.h"
+#include "string.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -194,8 +196,6 @@ void SARA_ChangeTech(uint8_t tech){ //tech should be 9 for NB
 
 	HAL_UART_Transmit(&huart1, SARAcfun15, strlen(SARAcfun15), 50);
 	HAL_UART_Receive(&huart1, trash, 128, 100);
-
-	uint8_t curTech; //if -1 then dont do following
 
 	// Wait for device to restart and
 	osDelay(5000);
@@ -627,28 +627,20 @@ void StartDefaultTask(void const * argument)
 {
   /* USER CODE BEGIN 5 */
 
-  uint8_t test[] = "AT+COPS?\r\n";
-  uint8_t test2[] = "AT+MAC=ON\r\n";
   uint8_t debugTest[] = "AT+DEBUG=ME?";
-  uint8_t loopDone[] = "Loop done\r\n";
   sendToESP(debugTest);
+
   osDelay(4500);
   SARA_Init();
   nemeus_Power_Cycle();
 
-  //uint8_t sigfoxSend[23] = "AT+SF=SNDBIN,";
   uint8_t sigfoxSend[30];
-  uint8_t sigfoxEnd[] = ",0\r\n";
-  //int sigFoxSeq = 0;
-  //uint8_t myInt[4];// = "0000"
   uint8_t LoRaMessage[69];
   uint8_t SigFoxMessage[69];
-  //uint8_t saraMSG[69];
 
   for(;;)
   {
     osDelay(1000);
-    //sendToESP(test);
     HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
 
     // **** SARA STUFF ****
@@ -685,7 +677,6 @@ void StartDefaultTask(void const * argument)
     HAL_UART_Transmit(&huart2, crlf, strlen(crlf), 50);
 
 	osDelay(50);
-    //memset(saraMSG,'\0', 69);
 	memset(SigFoxMessage, '\0', 69);
 	memset(LoRaMessage, '\0', 69);
 	memset(currentGPSCoords,'\0',80);
