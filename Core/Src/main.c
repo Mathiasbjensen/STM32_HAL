@@ -215,6 +215,9 @@ void SARA_ChangeTech(uint8_t tech){ //tech should be 9 for NB
 	int i = 0;
 	int msgLength;
 	do {
+		if (i > 2){
+			__HAL_UART_FLUSH_DRREGISTER(&huart1);
+		}
 		SARA_CheckTech();
 		msgLength = strlen(SARAtech);
 		getResultParameterURAT(3, SARAtech, msgLength);
@@ -235,6 +238,8 @@ void SARA_CheckTech(){
 	HAL_UART_Transmit(&huart1, SARAcopsCheck, strlen(SARAcopsCheck), 10);
 	HAL_UART_Receive(&huart1, SARAtech, 50, 1500);
 	sendToESP(SARAtech);
+	osDelay(150);
+
 }
 
 void getResultParameterURAT(int nParam, uint8_t * msg, int msgLength){
@@ -672,10 +677,10 @@ void collectAndTransmitSARAMeasurement(int sara_technology){
 	//}
 
     if (sara_technology == SARA_LTEM){
-    	SARA_ChangeTech('9');
+    	SARA_ChangeTech('7');
     }
     else if (sara_technology == SARA_NBIOT){
-    	SARA_ChangeTech('7');
+    	SARA_ChangeTech('9');
     }
 
     HAL_UART_Transmit(&huart1, SARAcesq, strlen(SARAcesq), 50);
@@ -692,8 +697,6 @@ void collectAndTransmitSARAMeasurement(int sara_technology){
     getGPSCoordinates();
     prepareSaraMeasurement(sara_technology);
     sendToESP(SaraMeasurements);
-
-
 }
 
 
@@ -735,7 +738,7 @@ void StartDefaultTask(void const * argument)
     HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
 // **** SARA STUFF ****
 
-
+/*
     SARA_ChangeTech('7');
     osDelay(150);
 
@@ -757,10 +760,9 @@ void StartDefaultTask(void const * argument)
     getGPSCoordinates();
     prepareSaraMeasurement(SARA_LTEM);
     sendToESP(SaraMeasurements);
-
+*/
     //sendToESP(SARARsrpRsrq);
 
-	SARA_ChangeTech('9');
 
 
     collectAndTransmitSARAMeasurement(SARA_LTEM);
@@ -768,8 +770,8 @@ void StartDefaultTask(void const * argument)
 
     collectAndTransmitSARAMeasurement(SARA_NBIOT);
     osDelay(500);
-
-
+/*
+    SARA_ChangeTech('9');
 
 	osDelay(1000);
 	HAL_UART_Transmit(&huart1, SARAcesq, strlen(SARAcesq), 50);
@@ -789,7 +791,7 @@ void StartDefaultTask(void const * argument)
 
 	//SARA_ChangeTech('7');
 
-
+*/
 
     /*
      * HAL_UART_Transmit(&huart1, test, strlen(test), 50);
