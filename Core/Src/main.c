@@ -197,8 +197,10 @@ void SARA_ChangeTech(uint8_t tech){ //tech should be 9 for NB
 
 	// Wait for device to restart and
 	osDelay(5000);
+
 	HAL_UART_Transmit(&huart1, SARAate0, strlen(SARAate0), 50);
 	HAL_UART_Receive(&huart1, trash, 128, 100);
+
 	if (tech == '9'){
 		osDelay(4500);
 	}
@@ -211,6 +213,22 @@ void SARA_ChangeTech(uint8_t tech){ //tech should be 9 for NB
 		sendToESP(SARATechnology);
 		osDelay(1500);
 		i++;
+		if(i > 3){
+			__HAL_UART_FLUSH_DRREGISTER(&huart1);
+			if(&huart1.ErrorCode == HAL_UART_ERROR_ORE){
+				HAL_UART_Receive(&huart1, trash, 1, 20);
+				sendToESP("Overrun Error code!!!!");
+			}
+
+			/*HAL_UART_Transmit(&huart1, SARAcfun15, strlen(SARAcfun15), 50);
+			HAL_UART_Receive(&huart1, trash, 128, 100);
+
+			osDelay(5000);
+
+			HAL_UART_Transmit(&huart1, SARAate0, strlen(SARAate0), 50);
+			HAL_UART_Receive(&huart1, trash, 128, 100);*/
+
+		}
 	} while (SARATechnology[0] != tech && i < 5);
 
 }
