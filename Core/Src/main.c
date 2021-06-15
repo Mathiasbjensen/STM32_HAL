@@ -217,17 +217,11 @@ void SARA_ChangeTech(uint8_t tech){ //tech should be 9 for NB
 			__HAL_UART_FLUSH_DRREGISTER(&huart1);
 			if(&huart1.ErrorCode == HAL_UART_ERROR_ORE){
 				HAL_UART_Receive(&huart1, trash, 1, 20);
-				sendToESP("Overrun Error code!!!!");
+				//sendToESP("Overrun Error code!!!!");
 			}
 
-			/*HAL_UART_Transmit(&huart1, SARAcfun15, strlen(SARAcfun15), 50);
-			HAL_UART_Receive(&huart1, trash, 128, 100);
-
-			osDelay(5000);
-
 			HAL_UART_Transmit(&huart1, SARAate0, strlen(SARAate0), 50);
-			HAL_UART_Receive(&huart1, trash, 128, 100);*/
-
+			HAL_UART_Receive(&huart1, trash, 128, 100);
 		}
 	} while (SARATechnology[0] != tech && i < 5);
 
@@ -244,7 +238,7 @@ void getResultParameterURAT(int nParam, uint8_t * msg, int msgLength){
 	memset(SARATechnology,'\0',1);
 	int commaCnt = 0;
 	int i = 0;
-	//sendToESP(msg);
+	sendToESP(msg);
 	while (msg[i] != '\0' && i < msgLength){
 		osDelay(50);
 		if(msg[i] == ',' && commaCnt == nParam-1){
@@ -645,7 +639,6 @@ void StartDefaultTask(void const * argument)
   /* USER CODE BEGIN 5 */
 
   uint8_t debugTest[] = "AT+DEBUG=ME?";
-  sendToESP(debugTest);
   osDelay(4500);
   SARA_Init();
   nemeus_Power_Cycle();
