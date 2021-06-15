@@ -196,21 +196,25 @@ void SARA_ChangeTech(uint8_t tech){ //tech should be 9 for NB
 	HAL_UART_Receive(&huart1, trash, 128, 100);
 
 	// Wait for device to restart and
-	osDelay(5000);
+	osDelay(7500);
 
 	HAL_UART_Transmit(&huart1, SARAate0, strlen(SARAate0), 50);
-	HAL_UART_Receive(&huart1, trash, 128, 100);
+	HAL_UART_Receive(&huart1, trash, 128, 250);
 
 	if (tech == '9'){
-		osDelay(4500);
+		osDelay(2000);
 	}
+
+	HAL_UART_Transmit(&huart1, SARAate0, strlen(SARAate0), 50);
+	HAL_UART_Receive(&huart1, trash, 128, 250);
+
 	int i = 0;
 	int msgLength;
 	do {
 		SARA_CheckTech();
 		msgLength = strlen(SARAtech);
 		getResultParameterURAT(3, SARAtech, msgLength);
-		sendToESP(SARATechnology);
+		osDelay(200);//sendToESP(SARATechnology);
 		osDelay(1500);
 		i++;
 		if(i > 3){
@@ -221,7 +225,7 @@ void SARA_ChangeTech(uint8_t tech){ //tech should be 9 for NB
 			}
 
 			HAL_UART_Transmit(&huart1, SARAate0, strlen(SARAate0), 50);
-			HAL_UART_Receive(&huart1, trash, 128, 100);
+			HAL_UART_Receive(&huart1, trash, 128, 250);
 		}
 	} while (SARATechnology[0] != tech && i < 5);
 
@@ -231,18 +235,19 @@ void SARA_CheckTech(){
 	memset(SARAtech,'\0',50);
 	HAL_UART_Transmit(&huart1, SARAcopsCheck, strlen(SARAcopsCheck), 10);
 	HAL_UART_Receive(&huart1, SARAtech, 50, 1500);
-	sendToESP(SARAtech);
+	osDelay(200);//sendToESP(SARAtech);
 }
 
 void getResultParameterURAT(int nParam, uint8_t * msg, int msgLength){
 	memset(SARATechnology,'\0',1);
 	int commaCnt = 0;
 	int i = 0;
-	sendToESP(msg);
+	//sendToESP(msg);
+	osDelay(200);
 	while (msg[i] != '\0' && i < msgLength){
 		osDelay(50);
 		if(msg[i] == ',' && commaCnt == nParam-1){
-			memset(SARATechnology,'\0',1);
+			//memset(SARATechnology,'\0',1); //probably unnecessary since its already done in beg
 			SARATechnology[0] = msg[i+1];
 			return;
 		} else if(msg[i] == ','){
@@ -283,19 +288,21 @@ void getCSQResult(uint8_t * msg){
 }
 
 void getGPSCoordinates(){
-	//memset(currentGPSCoords,'\0',80);
-	HAL_UART_Receive(&huart1, trash, 128, 200);
+	int cnt = 0;
+	memset(currentGPSCoords,'\0',80);
+	//HAL_UART_Receive(&huart1, trash, 128, 200);
     HAL_UART_Transmit(&huart1, getGPSCoordsCommand, strlen(getGPSCoordsCommand), 50);
-    HAL_UART_Receive(&huart1, currentGPSCoords, 80, 500);
+    HAL_UART_Receive(&huart1, currentGPSCoords, 80, 250);
 
-    if (strlen(currentGPSCoords) < 5){ //arbitrary number, should be tweaked.
-    	sendToESP(testing);
+    while (strlen(currentGPSCoords) < 18 && cnt < 5){ //arbitrary number, should be tweaked.
     	memset(currentGPSCoords,'\0',80);
-    	osDelay(100);
-    	HAL_UART_Receive(&huart1, trash, 128, 200);
+    	HAL_UART_Receive(&huart1, trash, 128, 250);
         HAL_UART_Transmit(&huart1, getGPSCoordsCommand, strlen(getGPSCoordsCommand), 50);
-        HAL_UART_Receive(&huart1, currentGPSCoords, 80, 1500);
+        HAL_UART_Receive(&huart1, currentGPSCoords, 80, 500);
+        osDelay(250);
+        cnt++;
     }
+
 }
 
 void prepareSaraMeasurement(int technology){
@@ -655,6 +662,7 @@ void StartDefaultTask(void const * argument)
   {
     osDelay(1000);
     //sendToESP(test);
+
     HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
 
     // **** SARA STUFF ****
