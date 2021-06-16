@@ -1,5 +1,6 @@
 ################################################################################
 # Automatically-generated file. Do not edit!
+# Toolchain: GNU Tools for STM32 (9-2020-q2-update)
 ################################################################################
 
 -include ../makefile.init
@@ -32,49 +33,55 @@ endif
 
 -include ../makefile.defs
 
-BUILD_ARTIFACT_NAME := STM32_HAL
+OPTIONAL_TOOL_DEPS := \
+$(wildcard ../makefile.defs) \
+$(wildcard ../makefile.init) \
+$(wildcard ../makefile.targets) \
+
+
+BUILD_ARTIFACT_NAME := BluePillHAL
 BUILD_ARTIFACT_EXTENSION := elf
 BUILD_ARTIFACT_PREFIX := 
 BUILD_ARTIFACT := $(BUILD_ARTIFACT_PREFIX)$(BUILD_ARTIFACT_NAME).$(BUILD_ARTIFACT_EXTENSION)
 
 # Add inputs and outputs from these tool invocations to the build variables 
 EXECUTABLES += \
-STM32_HAL.elf \
+BluePillHAL.elf \
 
 SIZE_OUTPUT += \
 default.size.stdout \
 
 OBJDUMP_LIST += \
-STM32_HAL.list \
+BluePillHAL.list \
 
 OBJCOPY_BIN += \
-STM32_HAL.bin \
+BluePillHAL.bin \
 
 
 # All Target
 all: main-build
 
 # Main-build Target
-main-build: STM32_HAL.elf secondary-outputs
+main-build: BluePillHAL.elf secondary-outputs
 
 # Tool invocations
-STM32_HAL.elf: $(OBJS) $(USER_OBJS) /home/rander/STM32CubeIDE/HALBluePill/STM32_HAL/STM32F103C8TX_FLASH.ld
-	arm-none-eabi-gcc -o "STM32_HAL.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m3 -T"/home/rander/STM32CubeIDE/HALBluePill/STM32_HAL/STM32F103C8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="STM32_HAL.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+BluePillHAL.elf: $(OBJS) $(USER_OBJS) /home/mathias/STM32CubeIDE/workspace_1.6.1/BluePillHAL/STM32F103C8TX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-gcc -o "BluePillHAL.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m3 -T"/home/mathias/STM32CubeIDE/workspace_1.6.1/BluePillHAL/STM32F103C8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="BluePillHAL.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 
-default.size.stdout: $(EXECUTABLES)
+default.size.stdout: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
 	arm-none-eabi-size  $(EXECUTABLES)
 	@echo 'Finished building: $@'
 	@echo ' '
 
-STM32_HAL.list: $(EXECUTABLES)
-	arm-none-eabi-objdump -h -S $(EXECUTABLES) > "STM32_HAL.list"
+BluePillHAL.list: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-objdump -h -S $(EXECUTABLES) > "BluePillHAL.list"
 	@echo 'Finished building: $@'
 	@echo ' '
 
-STM32_HAL.bin: $(EXECUTABLES)
-	arm-none-eabi-objcopy  -O binary $(EXECUTABLES) "STM32_HAL.bin"
+BluePillHAL.bin: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-objcopy  -O binary $(EXECUTABLES) "BluePillHAL.bin"
 	@echo 'Finished building: $@'
 	@echo ' '
 

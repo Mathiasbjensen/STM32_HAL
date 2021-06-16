@@ -201,7 +201,7 @@ void SARA_ChangeTech(uint8_t tech){ //tech should be 9 for NB
 	HAL_UART_Transmit(&huart1, SARAate0, strlen(SARAate0), 50);
 	HAL_UART_Receive(&huart1, trash, 128, 250);
 
-	if (tech == '9'){
+	if (tech == '9'){ // give NB-IoT additional boot-up time.
 		osDelay(2000);
 	}
 
@@ -619,6 +619,7 @@ void sendToESP(uint8_t * msg) {
 	HAL_UART_Transmit(&huart2, endDelim, 1, 50);
 }
 
+
 void collectAndTransmitSARAMeasurement(){
 
     HAL_UART_Transmit(&huart1, SARAcesq, strlen(SARAcesq), 50);
@@ -690,7 +691,16 @@ void StartDefaultTask(void const * argument)
     // **********************
 
     HAL_UART_Transmit(&huart3, getLoraLCR, strlen(getLoraLCR), 50);
-    HAL_UART_Receive(&huart3, LoRaMessage, 69, 10000);
+    HAL_UART_Receive(&huart3, LoRaMessage, 69, 5000);
+
+    //if(strcmp("\r\nERROR\r\n",LoRaMessage) == 0){
+    if(strstr("ERROR",LoRaMessage) != NULL){
+    	nemeus_Power_Cycle();
+    	memset(LoRaMessage, '\0', 69);
+    	HAL_UART_Receive(&huart3, trash, 128, 150);
+        HAL_UART_Transmit(&huart3, getLoraLCR, strlen(getLoraLCR), 50);
+        HAL_UART_Receive(&huart3, LoRaMessage, 69, 10000);
+    }
     NEMEUS_Extract_Lora_Measurements(LoRaMessage);
 
     getGPSCoordinates();
