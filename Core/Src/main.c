@@ -83,6 +83,7 @@ uint8_t beginLora[] = "AT+MAC=ON,3,A,1\r\n";
 uint8_t getLoraLCR[] = "AT+MAC=SNDLCR\r\n";
 uint8_t beginSigfox[] = "AT+SF=ON\r\n";
 uint8_t sigfoxSendBinCommand[] = "AT+SF=SNDBIN,";
+uint8_t sigfoxEnd[] = ",0\r\n";
 uint8_t getGPSCoordsCommand[] = "<G>\r\n";
 uint8_t loraTechName[] = "lora,";
 uint8_t sigfoxTechName[] = "sigfox,";
@@ -92,8 +93,9 @@ uint8_t trash[128];
 uint8_t loraMeasurements[128];
 uint8_t sigfoxMeasurements[128];
 
-int sigFoxSeq = 0;
+int sigfoxSeq = 0;
 uint8_t myInt[5];
+char* sigfoxArr;
 
 uint8_t beginDelim[] = "<";
 uint8_t endDelim[] = ">";
@@ -349,10 +351,10 @@ void NEMEUS_Prepare_Lora_Measurements(){
 
 void NEMEUS_Prepare_Sigfox_Measurements(){
 	strcpy(sigfoxMeasurements,sigfoxTechName);
-	//strcat(sigfoxMeasurements,currentGPSCoords);
+	strcat(sigfoxMeasurements,currentGPSCoords);
 	strcat(sigfoxMeasurements,randSeq);
-	strcat(sigfoxMeasurements,myInt);
-	strcat(sigfoxMeasurements,crlf);
+	strcat(sigfoxMeasurements,sigfoxArr);
+	//strcat(sigfoxMeasurements,crlf);
 }
 
 /* USER CODE END 0 */
@@ -374,13 +376,6 @@ int main(void)
 
   /* USER CODE BEGIN Init */
 
-  srand(time(0));
-  int x = rand();
-  int y = rand();
-  sprintf(randSeq, "%X", x%16);
-  sprintf(stry, "%X", y%16);
-  strcat(randSeq, stry);
-
   /* USER CODE END Init */
 
   /* Configure the system clock */
@@ -398,6 +393,18 @@ int main(void)
   /* USER CODE BEGIN 2 */
 
   HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_SET);
+
+
+  CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
+  DWT->CYCCNT = 0;
+  DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
+  srand(DWT->CYCCNT-HAL_GetTick());
+  int x = rand();
+  int y = rand();
+  sprintf(randSeq, "%X", x%16);
+  sprintf(stry, "%X", y%16);
+  strcat(randSeq, stry);
+
 
   /* USER CODE END 2 */
 
@@ -632,6 +639,44 @@ void collectAndTransmitSARAMeasurement(){
     getCSQResult(saraCSQmessage);
 
 }
+char* convertIntegerToChar(int N)
+{
+
+    int m = N;
+    int digit = 0;
+    while (m) {
+        digit++;
+        m /= 10;
+    }
+
+    char* arr;
+    char arr1[digit];
+
+    arr = (char*)malloc(digit);
+
+    int index = 0;
+    while (N) {
+        arr1[++index] = N % 10 + '0';
+        N /= 10;
+    }
+
+    if (index < 4){
+        for (int j = 0; j < 4-index; j++){
+            arr[j] = '0';
+        }
+    }
+
+    int i;
+    int k = 0;
+    for (i = 4-index; i < 4; i++){
+        arr[i] = arr1[index-k];
+        k++;
+    }
+    arr[i] = '\0';
+    return (char*)arr;
+}
+
+
 
 /* USER CODE END 4 */
 
@@ -659,12 +704,32 @@ void StartDefaultTask(void const * argument)
   uint8_t SigFoxMessage[69];
   //uint8_t saraMSG[69];
 
+
+
   for(;;)
   {
     osDelay(1000);
-    //sendToESP(test);
+    //sendToESP(debugTest);
 
     HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
+
+    sigfoxArr = convertIntegerToChar(sigfoxSeq);
+    strcpy(sigfoxSend,sigfoxSendBinCommand);
+    strcat(sigfoxSend,randSeq);
+    //strcat(sigfoxSend,myInt);
+    strcat(sigfoxSend,sigfoxArr);
+    strcat(sigfoxSend,sigfoxEnd);
+
+    //sendToESP(sigfoxSend);
+
+    HAL_UART_Transmit(&huart3, sigfoxSend, 30, 50);
+	HAL_UART_Receive(&huart3, SigFoxMessage, 69, 1500);
+
+	getGPSCoordinates();
+    NEMEUS_Prepare_Sigfox_Measurements();
+
+    sendToESP(sigfoxMeasurements);
+
 
     // **** SARA STUFF ****
     // ********************
@@ -689,7 +754,7 @@ void StartDefaultTask(void const * argument)
 
     // **** NEMEUS STUFF ****
     // **********************
-
+    HAL_UART_Receive(&huart3,trash,10,100);
     HAL_UART_Transmit(&huart3, getLoraLCR, strlen(getLoraLCR), 50);
     HAL_UART_Receive(&huart3, LoRaMessage, 69, 5000);
 
@@ -709,6 +774,9 @@ void StartDefaultTask(void const * argument)
 
     sendToESP(loraMeasurements);
 
+
+
+
     HAL_UART_Transmit(&huart2, crlf, strlen(crlf), 50);
 
     //memset(saraMSG,'\0', 69);
@@ -719,7 +787,10 @@ void StartDefaultTask(void const * argument)
 	memset(loraMeasurements,'\0',128);
 	memset(sigfoxMeasurements,'\0',128);
 	memset(sigfoxSend,'\0',30);
-	sigFoxSeq++;
+	free(sigfoxArr);
+	sigfoxSeq++;
+
+	nemeus_Power_Cycle(); // lora attach? enough time?
 
 
   }
